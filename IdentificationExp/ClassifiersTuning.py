@@ -43,7 +43,7 @@ class IdentificationExp:
     def run_knn(self):
         ''''
         '''
-        n_neighbors = [int(x) for x in range(13, 18, 2)]
+        n_neighbors = [int(x) for x in range(23, 28, 2)]
         # print('n_neighbors',n_neighbors)
         dist_met = ['manhattan', 'euclidean']
         # create the random grid of hyper-parameters
@@ -64,8 +64,7 @@ class IdentificationExp:
         rank_k_acc = {}
         for k in range(1, 4):
             rank_k_acc['rank' + str(k)] = top_k_accuracy_score(self.y_test, pred_scores, k=k)
-        print(
-            f'rank_k_acc: {rank_k_acc} for {self.classifier} with {best_nn} neighbors and {best_dist} distance metric')
+        print(f'rank_k_acc: {rank_k_acc} for {self.classifier} with {best_nn} neighbors and {best_dist} distance metric')
 
     def run_raf(self):
         ''''
@@ -111,7 +110,7 @@ class IdentificationExp:
         Kernels = ['linear', 'rbf']
         param_grid = {'C': CVals, 'gamma': Gammas, 'kernel': Kernels}
         # creating a classifier object
-        model = svm.SVC(random_state=Params.SEED, tol= 1e-5)
+        model = svm.SVC(random_state=Params.SEED, tol= 1e-5, probability=True)
         # setting up the parameter search using bayes search cv
         optimal_model = BayesSearchCV(estimator=model, search_spaces=param_grid, cv=5, scoring='accuracy')
         # fitting the training data to the model
@@ -121,7 +120,7 @@ class IdentificationExp:
         gamma = optimal_model.best_params_['gamma']
         kernel = optimal_model.best_params_['kernel']
         # Retraining the model again | this is not necessary, just my paranoia
-        final_model = svm.SVC(C=cval, gamma=gamma,kernel=kernel, random_state=Params.SEED,tol=1e-5)
+        final_model = svm.SVC(C=cval, gamma=gamma,kernel=kernel, random_state=Params.SEED,tol=1e-5, probability=True)
         final_model.fit(self.X_train, self.y_train)
         pred_scores = final_model.predict_proba(self.X_test)
         rank_k_acc = {}
