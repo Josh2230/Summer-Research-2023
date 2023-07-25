@@ -1,6 +1,10 @@
+import numpy as np
+
 from ClassifiersTuning import IdentificationExp
 import warnings
 warnings.filterwarnings("ignore")
 Exp1 = IdentificationExp('BBMAS')
-Exp1.prepare_data()
-Exp1.run_classifier("KNN")
+user_ids = [id for id in range(1, 10)]
+print(user_ids)
+Exp1.prepare_data(specific_user_ids = user_ids)
+Exp1.run_classifier(classifier_name="KNN")

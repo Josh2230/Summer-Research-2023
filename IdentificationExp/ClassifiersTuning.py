@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import top_k_accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from skopt import BayesSearchCV
 from sklearn import linear_model
 
@@ -22,28 +22,30 @@ class IdentificationExp:
         ''''
         '''
         feature_files = os.listdir(self.feature_path)
-        if specific_user_ids is None:
+        if specific_user_ids is None: # take all the users if no specified users
             ordered_file_names = ['User' + str(user_id) + '.csv' for user_id in range(1, len(feature_files) + 1)]
-        else:
+        else: # take only specified users
             ordered_file_names = ['User' + str(user_id) + '.csv' for user_id in specific_user_ids]
         print(f'Preparing data.... and users included: {ordered_file_names}')
         dataframes = []
         for file_name in ordered_file_names:
-            user_id = int(file_name[4:-4])
+            user_id = int(file_name[4:-4]) # user id as numbers!
             # print(f'user id: {user_id}----> user file name: {file_name}')
-            file_path = os.path.join(self.feature_path, file_name)
-            all_swipes = pd.read_csv(file_path, index_col=0)
-            all_swipes = all_swipes[all_swipes['faulty'] == False]
-            all_swipes = all_swipes.drop(['faulty'], axis=1)
-            all_swipes['user_id'] = user_id  # appending the user id to the corresponding feature matrix
+            file_path = os.path.join(self.feature_path, file_name) # create the path for the file
+            current_user_fvs = pd.read_csv(file_path, index_col=0) # read the data from the file
+            current_user_fvs = current_user_fvs[current_user_fvs['faulty'] == False] # discard all the faulty feature vectors
+            current_user_fvs = current_user_fvs.drop(['faulty'], axis=1) # drop the faulty column because we cant use it as a feature
+            current_user_fvs['user_id'] = user_id  # appending the user id to the corresponding feature matrix
             # print(all_swipes.head(20).to_string())
-            dataframes.append(all_swipes)  # creating a list of all the data frames
-        self.combined_df = pd.concat(dataframes)  # concatinating all the frames
+            dataframes.append(current_user_fvs)  # creating a list of all the data frames
+        self.combined_df = pd.concat(dataframes)  # concatinating all the frames vertically
+
+        # print(self.combined_df.to_string())
 
     def run_knn(self):
         ''''
         '''
-        n_neighbors = [int(x) for x in range(23, 28, 2)]
+        n_neighbors = [int(x) for x in range(3, 6, 2)]
         # print('n_neighbors',n_neighbors)
         dist_met = ['manhattan', 'euclidean']
         # create the random grid of hyper-parameters
@@ -218,18 +220,26 @@ class IdentificationExp:
         from sklearn.model_selection import train_test_split
         # Split the features and labels
         # Drop the 'user_id' column which represent the feature matrix
+        y = self.combined_df['user_id']
         X = self.combined_df.drop('user_id', axis=1, inplace=False)
         # Assign 'user_id' column to y the labels (user_ids)
-        y = self.combined_df['user_id']
         # Splitting the dataset into 70 training and 30 testing.
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.3,
                                                                                 random_state=Params.SEED)
+        # # for the majority of the classifiers it is essential that we scale | MinMax has done better than Scaler,
+        # # but we can see!
+        # mm_scaler = MinMaxScaler()
+        # # print(f'applying minmax scaler')
+        # self.X_train = mm_scaler.fit_transform(self.X_train)
+        # self.X_test = mm_scaler.transform(self.X_test)
+
         # for the majority of the classifiers it is essential that we scale | MinMax has done better than Scaler,
         # but we can see!
-        mm_scaler = MinMaxScaler()
+        standard_scaler = StandardScaler()
         # print(f'applying minmax scaler')
-        self.X_train = mm_scaler.fit_transform(self.X_train)
-        self.X_test = mm_scaler.transform(self.X_test)
+        self.X_train = standard_scaler.fit_transform(self.X_train)
+        self.X_test = standard_scaler.transform(self.X_test)
+
 
         if classifier_name == "KNN":
             self.classifier = classifier_name
