@@ -17,6 +17,8 @@ class IdentificationExp:
     def __init__(self, dataset_name):
         self.feature_path = os.path.join(os.path.dirname(os.getcwd()), 'FeatureFiles', dataset_name)
         # print(f'using features files located at {self.feature_path} for classification')
+    def set_dataset_path(self, datasetname):
+        self.feature_path = os.path.join(os.path.dirname(os.getcwd()), 'FeatureFiles', datasetname)
 
     def prepare_data(self, specific_user_ids=None):
         ''''
@@ -25,7 +27,8 @@ class IdentificationExp:
         if specific_user_ids is None: # take all the users if no specified users
             ordered_file_names = ['User' + str(user_id) + '.csv' for user_id in range(1, len(feature_files) + 1)]
         else: # take only specified users
-            ordered_file_names = ['User' + str(user_id) + '.csv' for user_id in specific_user_ids]
+            ordered_file_names = ['User' + str(user_id) + '.csv' for user_id in specific_user_ids] # 5, 6, 7,
+
         print(f'Preparing data.... and users included: {ordered_file_names}')
         dataframes = []
         for file_name in ordered_file_names:
@@ -34,10 +37,14 @@ class IdentificationExp:
             file_path = os.path.join(self.feature_path, file_name) # create the path for the file
             current_user_fvs = pd.read_csv(file_path, index_col=0) # read the data from the file
             current_user_fvs = current_user_fvs[current_user_fvs['faulty'] == False] # discard all the faulty feature vectors
+            # print('current_user_fvs.shape', current_user_fvs.shape)
             current_user_fvs = current_user_fvs.drop(['faulty'], axis=1) # drop the faulty column because we cant use it as a feature
+            # print('current_user_fvs.shape', current_user_fvs.shape)
             current_user_fvs['user_id'] = user_id  # appending the user id to the corresponding feature matrix
+            # print('after adding the user id current_user_fvs.shape', current_user_fvs.shape)
             # print(all_swipes.head(20).to_string())
             dataframes.append(current_user_fvs)  # creating a list of all the data frames
+            # print(current_user_fvs.head().to_string())
         self.combined_df = pd.concat(dataframes)  # concatinating all the frames vertically
 
         # print(self.combined_df.to_string())
@@ -220,26 +227,30 @@ class IdentificationExp:
         from sklearn.model_selection import train_test_split
         # Split the features and labels
         # Drop the 'user_id' column which represent the feature matrix
-        y = self.combined_df['user_id']
+        y = self.combined_df['user_id'] # classs labels
         X = self.combined_df.drop('user_id', axis=1, inplace=False)
         # Assign 'user_id' column to y the labels (user_ids)
         # Splitting the dataset into 70 training and 30 testing.
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.3,
                                                                                 random_state=Params.SEED)
+        # print(self.X_train.shape)
+        # print(self.X_test.shape)
+        # print(self.X_train.to_string())
+        # print(self.X_test.to_string())
         # # for the majority of the classifiers it is essential that we scale | MinMax has done better than Scaler,
         # # but we can see!
-        # mm_scaler = MinMaxScaler()
-        # # print(f'applying minmax scaler')
-        # self.X_train = mm_scaler.fit_transform(self.X_train)
-        # self.X_test = mm_scaler.transform(self.X_test)
+        mm_scaler = MinMaxScaler()
+        self.X_train = mm_scaler.fit_transform(self.X_train)
+        self.X_test = mm_scaler.transform(self.X_test)
 
         # for the majority of the classifiers it is essential that we scale | MinMax has done better than Scaler,
         # but we can see!
-        standard_scaler = StandardScaler()
-        # print(f'applying minmax scaler')
-        self.X_train = standard_scaler.fit_transform(self.X_train)
-        self.X_test = standard_scaler.transform(self.X_test)
-
+        # standard_scaler = StandardScaler()
+        # # print(f'applying minmax scaler')
+        # self.X_train = standard_scaler.fit_transform(self.X_train)
+        # trainDF = pd.DataFrame(self.X_train)
+        # print('self.X_train after scaler scaling', trainDF.to_string())
+        # self.X_test = standard_scaler.transform(self.X_test)
 
         if classifier_name == "KNN":
             self.classifier = classifier_name

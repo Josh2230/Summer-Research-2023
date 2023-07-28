@@ -45,6 +45,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/FeatureFiles/BBMASGanTouchFiles/1_Phone.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>
