@@ -231,12 +231,8 @@ class IdentificationExp:
     def run_lazypredictor(self):
         clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
         lazy_model = LazyClassifier(predictions=True)
-        lazy_model.fit(self.X_train, self.X_test, self.y_train, self.y_test)
-        y_pred_scores = lazy_model.predict(self.X_test)
-        rank_k_acc = {}
-        for k in range(1, 4):
-            rank_k_acc['rank' + str(k)] = top_k_accuracy_score(self.y_test, pred_scores, k=k)
-        print(f'rank_k_acc: {rank_k_acc} for {self.classifier} with solver: {solver}, cval: {cval}, penalty: {penalty}')
+        models, predictions = lazy_model.fit(self.X_train, self.X_test, self.y_train, self.y_test)
+        print(models)
 
     def run_classifier(self, classifier_name):
         ''''
