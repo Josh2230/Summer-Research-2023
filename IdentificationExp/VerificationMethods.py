@@ -9,6 +9,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from skopt import BayesSearchCV
 from sklearn import linear_model
+from lazypredict.Supervised import LazyClassifier
+
 
 from Param import Params
 
@@ -52,11 +54,17 @@ class IdentificationExp:
     def run_knn(self):
         ''''
         '''
-        n_neighbors = [int(x) for x in range(3, 6, 2)]
+        n_neighbors = [int(x) for x in range(1, 2)] #1 NN
         # print('n_neighbors',n_neighbors)
-        dist_met = ['manhattan', 'euclidean']
+        # dist_met = ['manhattan', 'euclidean']
+        dist_met = ['cosine']
+        weights = ['uniform', 'distance']
+        leaf_size = [20]
+        # Define the hyperparameter grid to search
+
         # create the random grid of hyper-parameters
-        param_grid = {'n_neighbors': n_neighbors, 'metric': dist_met}
+        param_grid = {'n_neighbors': n_neighbors, 'metric': dist_met, 'leaf_size':leaf_size, 'weights': weights}
+
         # creating a classifier object
         model = KNeighborsClassifier()
         # setting up the parameter search using bayes search cv
@@ -66,8 +74,11 @@ class IdentificationExp:
         # accessing the best values of the hyperparameters
         best_nn = optimal_model.best_params_['n_neighbors']
         best_dist = optimal_model.best_params_['metric']
+        best_leaf_size = optimal_model.best_params_['leaf_size']
+        best_weight  = optimal_model.best_params_['weights']
+
         # Retraining the model again | this is not necessary, just my paranoia
-        final_model = KNeighborsClassifier(n_neighbors=best_nn, metric=best_dist)
+        final_model = KNeighborsClassifier(n_neighbors=best_nn, metric=best_dist, weights=best_weight, leaf_size=best_leaf_size)
         final_model.fit(self.X_train, self.y_train)
         pred_scores = final_model.predict_proba(self.X_test)
         rank_k_acc = {}
@@ -215,9 +226,17 @@ class IdentificationExp:
         rank_k_acc = {}
         for k in range(1, 4):
             rank_k_acc['rank' + str(k)] = top_k_accuracy_score(self.y_test, pred_scores, k=k)
-        print(
-            f'rank_k_acc: {rank_k_acc} for {self.classifier} with solver: {solver}, cval: {cval}, penalty: {penalty}')
+        print(f'rank_k_acc: {rank_k_acc} for {self.classifier} with solver: {solver}, cval: {cval}, penalty: {penalty}')
 
+    def run_lazypredictor(self):
+        clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
+        lazy_model = LazyClassifier(predictions=True)
+        lazy_model.fit(self.X_train, self.X_test, self.y_train, self.y_test)
+        y_pred_scores = lazy_model.predict(self.X_test)
+        rank_k_acc = {}
+        for k in range(1, 4):
+            rank_k_acc['rank' + str(k)] = top_k_accuracy_score(self.y_test, pred_scores, k=k)
+        print(f'rank_k_acc: {rank_k_acc} for {self.classifier} with solver: {solver}, cval: {cval}, penalty: {penalty}')
 
     def run_classifier(self, classifier_name):
         ''''
@@ -271,5 +290,15 @@ class IdentificationExp:
             self.classifier = classifier_name
             print(f'Running {self.classifier} classifier')
             self.run_lrg()
+        elif classifier_name == 'AutoSklearn':
+            print(f'Running {self.classifier} classifier')
+            self.run_autosklearn()
+        elif classifier_name == 'LazyPredict':
+            self.classifier = classifier_name
+            print(f'Running {self.classifier} classifier')
+            self.run_lazypredictor()
+        elif classifier_name == 'AutoML':
+            print(f'Running {self.classifier} classifier')
+            self.run_automl()
         else:
             raise ValueError('Unknown classifier!')

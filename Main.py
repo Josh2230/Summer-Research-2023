@@ -1,4 +1,4 @@
-from IdentificationExp.ClassifiersTuning import IdentificationExp
+from IdentificationExp.VerificationMethods import IdentificationExp
 import warnings
 warnings.filterwarnings("ignore")
 # local testing
