@@ -1,4 +1,4 @@
-from IdentificationExp.VerificationMethods import IdentificationExp
+from Recognition.Identification import IdentificationExp
 import warnings
 warnings.filterwarnings("ignore")
 # local testing
