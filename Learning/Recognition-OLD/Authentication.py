@@ -5,7 +5,7 @@ from Classification.ModelingAuthentication import AuthModel
 from DataManager import FeatureManager
 from DataManager.FeatureManager import FMLoader
 from Classification.ModelingIdentification import IDModel
-from Param import Params
+from Param import AuthParams
 
 
 # TODO: think abou how to keep only one copy of auth data and use N classifiers
@@ -15,9 +15,9 @@ class Authenticator: # for each user
         self.impostor_train = impostor_train
         self.x_train = np.vstack((genuine_train, impostor_train))
         genuine_train_labels = np.ones(genuine_train.shape[0])
-        print(f'genuine_train_labels: {genuine_train_labels.shape}')
+        # print(f'genuine_train_labels: {genuine_train_labels.shape}')
         impostor_train_labels = -1*np.ones(self.impostor_train.shape[0])
-        print(f'impostor_train_labels: {impostor_train_labels.shape}')
+        # print(f'impostor_train_labels: {impostor_train_labels.shape}')
         self.y_train = np.concatenate((genuine_train_labels, impostor_train_labels))
         self.genuine_test = genuine_test
         self.impostor_test = impostor_test
@@ -43,10 +43,10 @@ class Authenticator: # for each user
             self.auth_models[classifier] = AM
     def evaluate_models(self):
         for classifier in self.classifiers:
-            self.auth_models[classifier].get_genuine_predictions(self.genuine_test)
-            self.auth_models[classifier].get_impostor_predictions(self.impostor_test)
-            print('get_far: ', self.auth_models[classifier].get_far())
-            print('get_frr: ', self.auth_models[classifier].get_frr())
+            if classifier not in AuthParams.AUTOCLS:
+                self.auth_models[classifier].get_genuine_predictions(self.genuine_test)
+                self.auth_models[classifier].get_impostor_predictions(self.impostor_test)
+                print(f'far : {self.auth_models[classifier].get_far()}, frr: {self.auth_models[classifier].get_frr()}')
 
 
 class AuthenticationExp: # for each dataset
@@ -80,6 +80,7 @@ class AuthenticationExp: # for each dataset
 
 if __name__ =="__main__":
     MCC = ['RAF', 'SVM', 'MLP', 'LRG', 'KNN']
+    # MCC = ['KNN']
     OCC = ['SVM1', 'LOF', 'ISF', 'ELE']
     AUTOCLS = ['LZP']
     datasets = ['BBMAS', 'ANTAL', 'BBMASORIGINAL']

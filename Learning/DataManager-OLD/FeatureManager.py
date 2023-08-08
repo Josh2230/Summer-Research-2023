@@ -1,4 +1,6 @@
 import os
+import random
+
 import pandas
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -63,14 +65,19 @@ class FMLoader:
        # Split the features and labels
        # Drop the 'user_id' column which represent the feature matrix
         genuine = self.combined_df[self.combined_df['user_id'] == user_id]
-        print(genuine.shape)
+        # print(genuine.shape)
         impostors = self.combined_df[self.combined_df['user_id'] != user_id]
-        print(impostors.shape)
+        # print(impostors.shape)
 
         genuine = genuine.drop(['user_id'], axis=1)
-        print(genuine.shape)
+        print('genuine.shape:', genuine.shape)
         impostors = impostors.drop(['user_id'], axis=1)
-        print(impostors.shape)
+        # print('impostors.shape:', impostors.shape)
+
+       #  https://www.geeksforgeeks.org/how-to-randomly-select-rows-from-pandas-dataframe/#
+       # balancing the number of samples
+       #  impostors = impostors.sample(genuine.shape[0]) # slicing the impostor data with random indices it has more samples than genuine
+        impostors = impostors.sample(len(self.all_users))  # slicing the impostor data with random indices it has more samples than genuine
 
         gen_train, gen_test = train_test_split(genuine, train_size=Params.TRAIN_PERCENT, random_state=Params.SEED)
         imp_train, imp_test = train_test_split(impostors, train_size=Params.TRAIN_PERCENT, random_state=Params.SEED)

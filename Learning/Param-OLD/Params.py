@@ -1,0 +1,6 @@
+SEED = 1987
+TRAIN_PERCENT = .8
+HYPER_TUNE = True
+MCC = ['RAF', 'SVM', 'MLP', 'LRG', 'KNN']
+OCC = ['SVM1', 'LOF', 'ISF', 'ELE']
+AUTOCLS = ['LZP']
