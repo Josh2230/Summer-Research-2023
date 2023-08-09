@@ -7,11 +7,11 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from skopt import BayesSearchCV
-from Param import AuthParams
-from Param.AuthParams import LOSS_FUNC, CVAL
+from Param import IdParams
+from Param.IdParams import LOSS_FUNC, CVAL
 
 
-class TrainAuthenticator:
+class TrainIdentifier:
     # the data could be made
     def __init__(self, classifier=None):  # default Random Forest
         self.classifier = classifier
@@ -44,7 +44,7 @@ class TrainAuthenticator:
 
     def train_raf(self, x_train, y_train):
         # print('Training RAF')
-        if AuthParams.HYPER_TUNE:
+        if IdParams.HYPER_TUNE:
             n_estimators = [int(item) for item in range(500, 501, 100)]
             max_depth = [int(item) for item in range(2, 4, 1)]
             min_samples_leaf = [int(item) for item in range(2, 3, 1)]
@@ -53,7 +53,7 @@ class TrainAuthenticator:
             # Create the random grid
             param_grid = {'n_estimators': n_estimators, 'max_features': max_features, 'max_depth': max_depth,
                           'min_samples_leaf': min_samples_leaf}
-            model = RandomForestClassifier(n_jobs=-1, random_state=AuthParams.SEED)
+            model = RandomForestClassifier(n_jobs=-1, random_state=IdParams.SEED)
             optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv = CVAL, scoring=LOSS_FUNC)
             optimal_model.fit(x_train, y_train)
             n_estimators = optimal_model.best_params_['n_estimators']
@@ -62,17 +62,16 @@ class TrainAuthenticator:
             min_samples_leaf = optimal_model.best_params_['min_samples_leaf']
             # print(f'n_estimators: {n_estimators}, max_features: {max_features}, max_depth:{max_depth}, min_samples_leaf:{min_samples_leaf}')
             self.final_model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth,
-                                            max_features=max_features, max_leaf_nodes=min_samples_leaf, n_jobs=-1,random_state=AuthParams.SEED)
+                                            max_features=max_features, max_leaf_nodes=min_samples_leaf, n_jobs=-1,random_state=IdParams.SEED)
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
             self.final_model = RandomForestClassifier(n_estimators=200)
             self.final_model.fit(x_train, y_train)
 
     def train_knn(self, x_train, y_train):
-        # print('Training KNN')
-        if AuthParams.HYPER_TUNE:
+        if IdParams.HYPER_TUNE:
+            # print('Tunning KNN...')
             n_neighbors = [int(x) for x in range(7, 10, 2)]
-            # print('n_neighbors',n_neighbors)   # hello
             dist_met = ['manhattan', 'euclidean', 'cosine']
             # create the random grid
             param_grid = {'n_neighbors': n_neighbors, 'metric': dist_met}
@@ -83,7 +82,7 @@ class TrainAuthenticator:
             optimal_model.fit(x_train, y_train)
             best_nn = optimal_model.best_params_['n_neighbors']
             best_dist = optimal_model.best_params_['metric']
-            # print(f'best_nn:{best_nn}, best_dist:{best_dist}')
+            # print(f'best_nn: {best_nn}, best_dist: {best_dist}')
             self.final_model = KNeighborsClassifier(n_neighbors=best_nn, metric=best_dist)
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
@@ -92,10 +91,10 @@ class TrainAuthenticator:
 
     def train_lrg(self, x_train, y_train):
         # print('Training LRG')
-        if AuthParams.HYPER_TUNE:
+        if IdParams.HYPER_TUNE:
             param_grid = {'solver': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
                           'C': [100, 100, 10, 1.0, 0.1, 0.01], 'penalty': ['l1', 'l2', 'elasticnet']}
-            model = linear_model.LogisticRegression(random_state=AuthParams.SEED, tol=1e-5)
+            model = linear_model.LogisticRegression(random_state=IdParams.SEED, tol=1e-5)
             optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv = CVAL, scoring=LOSS_FUNC)
             optimal_model.fit(x_train, y_train)
             solver = optimal_model.best_params_['solver']
@@ -103,7 +102,7 @@ class TrainAuthenticator:
             penalty = optimal_model.best_params_['penalty']
             # print(f'solver: {solver}, cval: {cval}, penalty: {penalty}')
             self.final_model = linear_model.LogisticRegression(solver=solver, C=cval, penalty=penalty,
-                random_state=AuthParams.SEED, tol=1e-5)
+                random_state=IdParams.SEED, tol=1e-5)
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
             self.final_model = linear_model.LogisticRegression(C=1000, solver ='newton-cg')
@@ -111,7 +110,7 @@ class TrainAuthenticator:
 
     def train_mlp(self, x_train, y_train):
         # print('Training MLP')
-        if AuthParams.HYPER_TUNE:
+        if IdParams.HYPER_TUNE:
             hlsize = []
             for flayer in range(50, 101, 50):
                 # hlsize.append((flayer,))
@@ -133,7 +132,7 @@ class TrainAuthenticator:
             # Create the random grid
             param_grid = {'hidden_layer_sizes': hlsize, 'activation': activation, 'solver': solver, 'alpha': alpha,
                           'learning_rate': learning_rate}
-            model = MLPClassifier(max_iter=500, random_state=AuthParams.SEED, early_stopping=True)
+            model = MLPClassifier(max_iter=500, random_state=IdParams.SEED, early_stopping=True)
             optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring=LOSS_FUNC)
             optimal_model.fit(x_train, y_train)
             hlayers = optimal_model.best_params_['hidden_layer_sizes']
@@ -143,7 +142,7 @@ class TrainAuthenticator:
             learning_rate = optimal_model.best_params_['learning_rate']
             # print(f'hlayers: {hlayers}, activation: {activation}, solver: {solver}, alpha: {alpha}, learning_rate: {learning_rate}')
             self.final_model = MLPClassifier(max_iter=500, hidden_layer_sizes=hlayers, activation=activation,
-                random_state=AuthParams.SEED, solver=solver, alpha=alpha, learning_rate=learning_rate)
+                random_state=IdParams.SEED, solver=solver, alpha=alpha, learning_rate=learning_rate)
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
             self.final_model = MLPClassifier()
@@ -151,19 +150,19 @@ class TrainAuthenticator:
 
     def train_svm(self, x_train, y_train):
         # print('Training SVM')
-        if AuthParams.HYPER_TUNE:
+        if IdParams.HYPER_TUNE:
             CVals = [1, 10, 100, 1000, 10000]
             Gammas = ['scale']
             Kernels = ['linear', 'poly', 'rbf', 'sigmoid', ]
             param_grid = {'C': CVals, 'gamma': Gammas, 'kernel': Kernels}
-            model = svm.SVC(random_state=AuthParams.SEED, tol=1e-5)
+            model = svm.SVC(random_state=IdParams.SEED, tol=1e-5, probability=True, max_iter = 200000)
             optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv = CVAL, scoring=LOSS_FUNC)
             optimal_model.fit(x_train, y_train)
             cval = optimal_model.best_params_['C']
             gamma = optimal_model.best_params_['gamma']
             kernel = optimal_model.best_params_['kernel']
             # print(f'cval: {cval}, gamma: {gamma}, kernel: {kernel}')
-            self.final_model = svm.SVC(C=cval, gamma=gamma, kernel=kernel, random_state=AuthParams.SEED, tol=1e-5, probability=True)
+            self.final_model = svm.SVC(C=cval, gamma=gamma, kernel=kernel, random_state=IdParams.SEED, tol=1e-5, probability=True, max_iter = 200000)
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
             self.final_model = svm.SVC(probability=True, C=1000)
@@ -171,7 +170,7 @@ class TrainAuthenticator:
 
     def train_gnb(self, x_train, y_train):
         # print('Training Gaussian Naive Bayes--best baseline!')
-        if AuthParams.HYPER_TUNE:
+        if IdParams.HYPER_TUNE:
             var_smoothing = [1e-09, 1e-07, 1e-05]
             param_grid = {'var_smoothing': var_smoothing}
             model = GaussianNB()

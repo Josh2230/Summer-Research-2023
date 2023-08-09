@@ -26,7 +26,7 @@ class Authenticator:  # for each user
     def scale_features(self, method='MINMAX'):
         if method == 'MINMAX':
             mm_scaler = MinMaxScaler(feature_range=(0, 1), clip=False) # clip sounds phishy!
-            mm_scaler = mm_scaler.fit(self.genuine_train) # fitting on just genuine training data!
+            mm_scaler = mm_scaler.fit(self.x_train) # fitting on just genuine training data!
             self.x_train = mm_scaler.transform(self.x_train)
             self.genuine_train = mm_scaler.transform(self.genuine_train)
             self.impostor_train = mm_scaler.transform(self.impostor_train)
@@ -35,7 +35,7 @@ class Authenticator:  # for each user
 
         elif method == 'STANDARD':
             standard_scaler = StandardScaler()
-            standard_scaler = standard_scaler.fit(self.genuine_train) # fitting on just genuine training data!
+            standard_scaler = standard_scaler.fit(self.x_train) # fitting on just genuine training data!
             self.x_train = standard_scaler.transform(self.x_train)
             self.genuine_train = standard_scaler.transform(self.genuine_train)
             self.impostor_train = standard_scaler.transform(self.impostor_train)

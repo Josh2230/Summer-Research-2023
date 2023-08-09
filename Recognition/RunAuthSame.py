@@ -8,9 +8,9 @@ from DataManager.FFilesManager import combine_feature_files
 from Param import IdParams, AuthParams
 from Param.AuthParams import SCALING_METHOD, SCALE_FEATURES, SMOTE_DATA
 
-datasets = ['FRANK']
-# classifiers = ['KNN', 'RAF', 'SVM', 'LRG',  'MLP', 'GNB']
-classifiers = ['KNN']
+datasets = ['ANTAL', 'BBMAS', 'FRANK']
+classifiers = ['KNN', 'RAF', 'SVM', 'LRG',  'MLP', 'GNB']
+# classifiers = ['KNN']
 result_table = pd.DataFrame(columns=['dataset', 'classifier', 'user', 'FAR', 'FRR', 'HTER'])
 entry_id = 0
 for dataset in datasets: # Run for every dataset
