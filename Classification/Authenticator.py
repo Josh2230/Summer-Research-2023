@@ -24,12 +24,12 @@ class Authenticator:  # for each user
         self.y_test = np.concatenate((genuine_test_labels, impostor_test_labels))
         self.classifier = classifier
 
-    def scale_features(self, method='MinMax'):
+    def scale_features(self, method='MINMAX'):
         # print('------------before scaling------------')
         if method == 'MINMAX':
-            mm_scaler = MinMaxScaler()
-            mm_scaler.fit(self.x_train)
-            # print(f'applying MinMaxScaler')
+            mm_scaler = MinMaxScaler(feature_range=(0, 1), clip=True)
+            mm_scaler = mm_scaler.fit(self.x_train)
+            print(f'Applying MinMaxScaler', end=" ")
             self.x_train = mm_scaler.transform(self.x_train)
             self.x_test = mm_scaler.transform(self.x_test)
             self.genuine_train = mm_scaler.transform(self.genuine_train)
@@ -40,7 +40,7 @@ class Authenticator:  # for each user
         elif method == 'STANDARD':
             standard_scaler = StandardScaler()
             standard_scaler.fit(self.x_train)
-            # print(f'applying StandardScaler')
+            print(f'Applying STANDARD scaler', end=" ")
             self.x_train = standard_scaler.transform(self.x_train)
             self.x_test = standard_scaler.transform(self.x_test)
             self.genuine_train = standard_scaler.transform(self.genuine_train)
@@ -49,19 +49,21 @@ class Authenticator:  # for each user
             self.impostor_test = standard_scaler.transform(self.impostor_test)
         else:
             raise ValueError('Scaling method unknown!')
-        # print('------------after scaling------------')
 
 
     def select_features(self):
         # print('Number of features BEFORE selection: ', self.x_train.shape[1])
         fselector = SelectKBest(mutual_info_classif,
             k=int(self.x_train.shape[1]*AuthParams.SELECT_FEATURES_PERCENT))  # selecting 2/3rd of the features only
-        fselector.fit(self.x_train, self.y_train)
+        fselector = fselector.fit(self.x_train, self.y_train)
+
         self.x_train = fselector.transform(self.x_train)
+        self.x_test = fselector.transform(self.x_test)
+        self.genuine_train = fselector.transform(self.genuine_train)
+        self.impostor_train = fselector.transform(self.impostor_train)
         self.genuine_test = fselector.transform(self.genuine_test)
         self.impostor_test = fselector.transform(self.impostor_test)
-        self.x_test = fselector.transform(self.x_test)  # not necessary!
-        # print('Number of features AFTER selection: ', self.x_train.shape[1])
+
 
     def train(self):
         CAM = TrainAuthenticator(self.classifier)  # creating one authentication mode for the current classifier

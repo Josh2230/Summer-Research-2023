@@ -118,22 +118,24 @@ class TrainAuthenticator:
     def train_raf(self, x_train, y_train):
         # print('Training RAF')
         if AuthParams.HYPER_TUNE:
-            n_estimators = [int(item) for item in range(500, 1001, 200)]
+            n_estimators = [int(item) for item in range(500, 501, 100)]
             max_depth = [int(item) for item in range(2, 4, 1)]
             min_samples_leaf = [int(item) for item in range(2, 3, 1)]
-            max_features = [x / 100 for x in range(30, 51, 20)]  # need to remain float for percentages
+            max_features = [x / 100 for x in range(30, 51, 30)]  # need to remain float for percentages
             # max_features = ['sqrt', 'log2']
             # Create the random grid
             param_grid = {'n_estimators': n_estimators, 'max_features': max_features, 'max_depth': max_depth,
                           'min_samples_leaf': min_samples_leaf}
             model = RandomForestClassifier(n_jobs=-1, random_state=AuthParams.SEED)
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_hter)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_frr)
             optimal_model.fit(x_train, y_train)
             n_estimators = optimal_model.best_params_['n_estimators']
             max_features = optimal_model.best_params_['max_features']
             max_depth = optimal_model.best_params_['max_depth']
             min_samples_leaf = optimal_model.best_params_['min_samples_leaf']
             # print(f'n_estimators: {n_estimators}, max_features: {max_features}, max_depth:{max_depth}, min_samples_leaf:{min_samples_leaf}')
+            self.final_model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth,
+                                            max_features=max_features, max_leaf_nodes=min_samples_leaf, n_jobs=-1,random_state=AuthParams.SEED)
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
             self.final_model = RandomForestClassifier(n_estimators=200)
@@ -149,7 +151,7 @@ class TrainAuthenticator:
             param_grid = {'n_neighbors': n_neighbors, 'metric': dist_met}
             model = KNeighborsClassifier()
             # scoring_function = 'f1'
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_hter)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_frr)
             # loss function!
             optimal_model.fit(x_train, y_train)
             best_nn = optimal_model.best_params_['n_neighbors']
@@ -158,7 +160,7 @@ class TrainAuthenticator:
             self.final_model = KNeighborsClassifier(n_neighbors=best_nn, metric=best_dist)
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
-            self.final_model = KNeighborsClassifier()
+            self.final_model = KNeighborsClassifier(n_neighbors=7, metric='euclidean')
             self.final_model.fit(x_train, y_train)
 
     def train_lrg(self, x_train, y_train):
@@ -167,7 +169,7 @@ class TrainAuthenticator:
             param_grid = {'solver': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
                           'C': [100, 100, 10, 1.0, 0.1, 0.01], 'penalty': ['l1', 'l2', 'elasticnet']}
             model = linear_model.LogisticRegression(random_state=AuthParams.SEED, tol=1e-5)
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_hter)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_frr)
             optimal_model.fit(x_train, y_train)
             solver = optimal_model.best_params_['solver']
             cval = optimal_model.best_params_['C']
@@ -184,9 +186,9 @@ class TrainAuthenticator:
         # print('Training MLP')
         if AuthParams.HYPER_TUNE:
             hlsize = []
-            for flayer in range(100, 301, 100):
+            for flayer in range(50, 101, 50):
                 # hlsize.append((flayer,))
-                for slayer in range(50, 101, 50):
+                for slayer in range(25, 51, 25):
                     hlsize.append((flayer, slayer))
             # print(hlsize)
             solver = ['adam', 'lbfgs']
@@ -205,7 +207,7 @@ class TrainAuthenticator:
             param_grid = {'hidden_layer_sizes': hlsize, 'activation': activation, 'solver': solver, 'alpha': alpha,
                           'learning_rate': learning_rate}
             model = MLPClassifier(max_iter=500, random_state=AuthParams.SEED, early_stopping=True)
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring=self.scorer_hter)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring=self.scorer_frr)
             optimal_model.fit(x_train, y_train)
             hlayers = optimal_model.best_params_['hidden_layer_sizes']
             activation = optimal_model.best_params_['activation']
@@ -228,7 +230,7 @@ class TrainAuthenticator:
             Kernels = ['linear', 'poly', 'rbf', 'sigmoid', ]
             param_grid = {'C': CVals, 'gamma': Gammas, 'kernel': Kernels}
             model = svm.SVC(random_state=AuthParams.SEED, tol=1e-5)
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_hter)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_frr)
             optimal_model.fit(x_train, y_train)
             cval = optimal_model.best_params_['C']
             gamma = optimal_model.best_params_['gamma']
