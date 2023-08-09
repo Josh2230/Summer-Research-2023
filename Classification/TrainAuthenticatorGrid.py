@@ -90,7 +90,7 @@ class TrainAuthenticator:
     def train_knn(self, x_train, y_train):
         # print('Training KNN')
         if AuthParams.HYPER_TUNE:
-            n_neighbors = [int(x) for x in range(1, 10, 2)]
+            n_neighbors = [int(x) for x in range(7, 10, 2)]
             # print('n_neighbors',n_neighbors)   # hello
             dist_met = ['manhattan', 'euclidean', 'cosine']
             # create the random grid

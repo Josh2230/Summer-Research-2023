@@ -4,8 +4,9 @@ from Classification import Myscorer
 SEED = 1987
 CVAL = 5
 TRAIN_PERCENT = .8
-HYPER_TUNE = False
+HYPER_TUNE = True
 LOSS_FUNC = Myscorer.scorer_hter
+SMOTE_DATA = True
 SELECT_FEATURES = True
 FEAT_SELECT_BASIS = mutual_info_classif
 if SELECT_FEATURES:

@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from Classification.Authenticator import Authenticator
 from DataManager.FFilesManager import combine_feature_files
 from Param import IdParams, AuthParams
-from Param.AuthParams import SCALING_METHOD, SCALE_FEATURES
+from Param.AuthParams import SCALING_METHOD, SCALE_FEATURES, SMOTE_DATA
+
 datasets = ['FRANK']
 # classifiers = ['KNN', 'RAF', 'SVM', 'LRG',  'MLP', 'GNB']
 classifiers = ['KNN']
@@ -14,7 +15,7 @@ result_table = pd.DataFrame(columns=['dataset', 'classifier', 'user', 'FAR', 'FR
 entry_id = 0
 for dataset in datasets: # Run for every dataset
     for classifier in classifiers: # run for every classifier
-        print(f'Running for {classifier} classifier on {dataset} with scaling: {SCALING_METHOD} set to {SCALE_FEATURES}')
+        print(f'Running for {classifier} classifier on {dataset} with scaling: {SCALING_METHOD} set to {SCALE_FEATURES} and SMOTE_DATA set to {SMOTE_DATA}')
         data_location = os.path.join(os.path.dirname(os.getcwd()), 'SavedFeatures', dataset)
         feature_location = os.path.join(data_location)
         feature_df = combine_feature_files(feature_location)
@@ -44,6 +45,10 @@ for dataset in datasets: # Run for every dataset
             # creating an authenticator object | we can save these objects and evaluate later
             # passing only
             authenticator = Authenticator(genuine_train, impostor_train, genuine_test, impostor_test)
+
+            # pump genuine samples using SMOTE
+            if SMOTE_DATA:
+                authenticator.smote_data()
 
             # if needed to scale the features
             if AuthParams.SCALE_FEATURES:

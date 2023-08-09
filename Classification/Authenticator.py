@@ -1,6 +1,7 @@
 # We will evaluate identification performance via this script!
 import numpy as np
 import pandas as pd
+from imblearn.over_sampling import SVMSMOTE
 from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from Classification.TrainAuthenticatorGrid import TrainAuthenticator
@@ -18,6 +19,9 @@ class Authenticator:  # for each user
         self.genuine_test = genuine_test
         self.impostor_test = impostor_test
 
+    def smote_data(self):
+        oversample = SVMSMOTE()  # doesnt create a model
+        self.x_train, self.y_train = oversample.fit_resample(self.x_train, self.y_train)
 
     def scale_features(self, method='MINMAX'):
         if method == 'MINMAX':
