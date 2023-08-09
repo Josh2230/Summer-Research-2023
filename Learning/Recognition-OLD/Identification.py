@@ -1,6 +1,6 @@
 # We will evaluate identification performance via this script!
-from DataManager import FeatureManager
-from DataManager.FeatureManager import FMLoader
+from DataManager import FFilesManager
+from DataManager.FFilesManager import FMLoader
 from Classification.ModelingIdentification import IDModel
 from Param import Params
 class IdentificationExp:
@@ -30,25 +30,18 @@ class IdentificationExp:
     def evaluate_identification_models(self):
         self.test_results = {}
         for model in self.trained_models:
-            if model in AUTOCLS:
-                models, predictions = self.trained_models[model].get_results_from_lazy()
-                self.test_results[model] = (models, predictions)
-                print(models)
-            else:
-                predictions, prediction_scores = self.trained_models[model].get_test_results()
-                self.test_results[model] = (predictions, prediction_scores)
-                self.trained_models[model].print_krank_accuracy()
+            predictions, prediction_scores = self.trained_models[model].get_test_results()
+            self.test_results[model] = (predictions, prediction_scores)
+            self.trained_models[model].print_krank_accuracy()
 
 if __name__ =="__main__":
     MCC = ['RAF', 'SVM', 'MLP', 'LRG', 'KNN']
     OCC = ['SVM1', 'LOF', 'ISF', 'ELE']
-    AUTOCLS = ['LZP']
     datasets = ['BBMAS', 'ANTAL', 'BBMASORIGINAL']
     user_ids = [id for id in range(1, 117)]
     IDE = IdentificationExp()
     IDE.set_dataset('BBMAS')
     IDE.set_users(user_ids)
     IDE.load_dataset()
-    IDE.set_classifiers(AUTOCLS)
     IDE.train_identification_models()
     IDE.evaluate_identification_models()

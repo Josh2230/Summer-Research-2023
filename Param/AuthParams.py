@@ -1,15 +1,18 @@
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.feature_selection import chi2
+from Classification import Myscorer
 SEED = 1987
+CVAL = 5
 TRAIN_PERCENT = .8
 HYPER_TUNE = False
-BAYES_LOSS_FUNC = 'f1'
-GRID_LOSS_FUNC = 'self.scorer_hter'
+LOSS_FUNC = Myscorer.scorer_hter
 SELECT_FEATURES = True
-SELECT_FEATURES_PERCENT = 0.5
+FEAT_SELECT_BASIS = mutual_info_classif
+if SELECT_FEATURES:
+    SELECT_FEATURES_PERCENT = .77
+
 SCALE_FEATURES = True
-SCALING_METHOD = 'MINMAX'
-DEFAULT_CLS = 'KNN'
-MCC = ['RAF', 'SVM', 'MLP', 'LRG', 'KNN']
-OCC = ['SVM1', 'LOF', 'ISF', 'ELE']
-AUTOCLS = ['LZP']
-SeparateTrainTest = ['NOTHING']
-CombinedTrainTest = ['ANTAL', 'BBMAS']
+SCALING_METHOD = 'STANDARD'
+
+
+

@@ -2,8 +2,8 @@
 import numpy as np
 
 from Classification.ModelingAuthentication import AuthModel
-from DataManager import FeatureManager
-from DataManager.FeatureManager import FMLoader
+from DataManager import FFilesManager
+from DataManager.FFilesManager import FMLoader
 from Classification.ModelingIdentification import IDModel
 from Param import AuthParams
 
@@ -16,14 +16,14 @@ class Authenticator: # for each user
         self.x_train = np.vstack((genuine_train, impostor_train))
         genuine_train_labels = np.ones(genuine_train.shape[0])
         # print(f'genuine_train_labels: {genuine_train_labels.shape}')
-        impostor_train_labels = -1*np.ones(self.impostor_train.shape[0])
+        impostor_train_labels = np.zeros(self.impostor_train.shape[0])
         # print(f'impostor_train_labels: {impostor_train_labels.shape}')
         self.y_train = np.concatenate((genuine_train_labels, impostor_train_labels))
         self.genuine_test = genuine_test
         self.impostor_test = impostor_test
         self.x_test = np.vstack((genuine_test, impostor_test))
         genuine_test_labels = np.ones(genuine_test.shape[0])
-        impostor_test_labels = -1*np.ones(impostor_test.shape[0])
+        impostor_test_labels =np.zeros(impostor_test.shape[0])
         self.y_test = np.concatenate((genuine_test_labels, impostor_test_labels))
         self.user_id = None
         self.classifiers = []
@@ -36,17 +36,13 @@ class Authenticator: # for each user
         for classifier in self.classifiers:
             AM  = AuthModel()
             AM.set_classifier(classifier)
-            if classifier not in AUTOCLS:
-                AM.train(self.x_train, self.y_train)
-            else:
-                AM.train(self.x_train, self.y_train, self.x_test, self.y_test)
+            AM.train(self.x_train, self.y_train, self.x_test, self.y_test)
             self.auth_models[classifier] = AM
     def evaluate_models(self):
         for classifier in self.classifiers:
-            if classifier not in AuthParams.AUTOCLS:
-                self.auth_models[classifier].get_genuine_predictions(self.genuine_test)
-                self.auth_models[classifier].get_impostor_predictions(self.impostor_test)
-                print(f'far : {self.auth_models[classifier].get_far()}, frr: {self.auth_models[classifier].get_frr()}')
+            self.auth_models[classifier].gen_preds(self.genuine_test)
+            self.auth_models[classifier].imp_preds(self.impostor_test)
+            print(f'far : {self.auth_models[classifier].get_far()}, frr: {self.auth_models[classifier].get_frr()}')
 
 
 class AuthenticationExp: # for each dataset
@@ -82,7 +78,6 @@ if __name__ =="__main__":
     MCC = ['RAF', 'SVM', 'MLP', 'LRG', 'KNN']
     # MCC = ['KNN']
     OCC = ['SVM1', 'LOF', 'ISF', 'ELE']
-    AUTOCLS = ['LZP']
     datasets = ['BBMAS', 'ANTAL', 'BBMASORIGINAL']
     user_ids = [id for id in range(1, 5)]
     AExp = AuthenticationExp(dataset='BBMAS', users=user_ids, classifiers=MCC)

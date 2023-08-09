@@ -1,6 +1,6 @@
 # We will evaluate identification performance via this script!
-from DataManager import FeatureManager
-from DataManager.FeatureManager import FMLoader
+from DataManager import FFilesManager
+from DataManager.FFilesManager import FMLoader
 from Classification.ModelingIdentification import IDModel
 from DataManager.FMSeparate import FMSepLoader
 from Param import IdParams
@@ -52,15 +52,9 @@ class IdentificationExp:
         self.test_results = {}
         for classifier in self.trained_identifiers:
             print(f'testing identification model using {classifier}')
-
-            if classifier in IdParams.AUTOCLS:
-                models, predictions = self.trained_identifiers[classifier].get_results_from_lazy()
-                self.test_results[classifier] = (models, predictions)
-                print(models)
-            else:
-                predictions, prediction_scores = self.trained_identifiers[classifier].get_test_results()
-                self.test_results[classifier] = (predictions, prediction_scores)
-                self.trained_identifiers[classifier].print_krank_accuracy()
+            predictions, prediction_scores = self.trained_identifiers[classifier].get_test_results()
+            self.test_results[classifier] = (predictions, prediction_scores)
+            self.trained_identifiers[classifier].print_krank_accuracy()
 
 if __name__ =="__main__":
     datasets =IdParams.SeparateTrainTest

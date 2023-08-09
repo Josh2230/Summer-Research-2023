@@ -1,62 +1,26 @@
-from lazypredict.Supervised import LazyClassifier
 from sklearn import svm, linear_model
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import make_scorer, confusion_matrix
 from sklearn.model_selection import GridSearchCV
+from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from skopt import BayesSearchCV
 from Param import AuthParams
+from Param.AuthParams import LOSS_FUNC, CVAL
 
 
 class TrainAuthenticator:
     # the data could be made
     def __init__(self, classifier=None):  # default Random Forest
-        self.gen_predictions = None
-        self.imp_predictions = None
         self.classifier = classifier
         self.final_model = None
-        self.gen_scores = []
-        self.imp_scores = []
-
-        from sklearn.metrics import confusion_matrix, make_scorer
-
-        def scoring_hter(y_true, y_pred):
-            tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-            far = fp / (fp + tn)
-            frr = fn / (fn + tp)
-            hter = (far + frr) / 2
-            if hter < 0:
-                raise ValueError('ERROR: HTER CANT BE NEATIVE')
-            return hter
-
-        def scoring_far(y_true, y_pred):
-            tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-            far = fp / (fp + tn)
-            frr = fn / (fn + tp)
-            hter = (far + frr) / 2
-            if hter < 0:
-                raise ValueError('ERROR: FAR CANT BE NEATIVE')
-            return far
-
-        def scoring_frr(y_true, y_pred):
-            tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-            far = fp / (fp + tn)
-            frr = fn / (fn + tp)
-            hter = (far + frr) / 2
-            if hter < 0:
-                raise ValueError('ERROR: FAR CANT BE NEATIVE')
-            return frr
-
-        self.scorer_hter = make_scorer(scoring_hter, greater_is_better=False)
-        self.scorer_far = make_scorer(scoring_far, greater_is_better=False)
-        self.scorer_frr = make_scorer(scoring_frr, greater_is_better=False)
 
     def set_classifier(self, classifier):
         self.classifier = classifier
 
-    def train(self, x_train, y_train, x_test=None, y_test=None):
+    def train(self, x_train, y_train):
         if self.classifier == "KNN":
             self.train_knn(x_train, y_train)
         elif self.classifier == "RAF":
@@ -67,53 +31,35 @@ class TrainAuthenticator:
             self.train_mlp(x_train, y_train)
         elif self.classifier == "LRG":
             self.train_lrg(x_train, y_train)
-        elif self.classifier == 'LZP':
-            self.print_results_from_lazy(x_train, x_test, y_train, y_test)
+        elif self.classifier == 'GNB':
+            self.train_gnb(x_train, y_train)
         else:
             raise ValueError('Unknown classifier!')
+    def get_preds(self, samples):
+        predictions = self.final_model.predict(samples)
+        return predictions
+    def get_scores(self, samples):
+        scores = self.final_model.predict_proba(samples)
+        return scores
 
-    def print_results_from_lazy(self, x_train, x_test, y_train, y_test):
-        clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
-        self.final_model = LazyClassifier(predictions=True)
-        models, predictions = self.final_model.fit(x_train, x_test, y_train, y_test)
-        print(models)
-        return models, predictions
-
-    def get_genuine_predictions(self, x_test):
-        if self.classifier not in AuthParams.AUTOCLS:
-            self.gen_predictions = self.final_model.predict(x_test)
-            return self.gen_predictions
-
-    def get_impostor_predictions(self, x_test):
-        if self.classifier not in AuthParams.AUTOCLS:
-            self.imp_predictions = self.final_model.predict(x_test)
-            return self.imp_predictions
-
-    def get_genuine_scores(self, x_test):
-        if self.classifier not in AuthParams.AUTOCLS:
-            self.gen_scores = self.final_model.predict_proba(x_test)
-            return self.gen_scores
-
-    def get_imp_scores(self, x_test):
-        if self.classifier not in AuthParams.AUTOCLS:
-            self.imp_scores = self.final_model.predict_proba(x_test)
-            return self.imp_scores
-
-    def get_far(self):
+    def get_far(self, imp_samples):
         count_ones = 0
-        for item in self.imp_predictions:
+        imp_predictions = self.imp_preds(imp_samples)
+        for item in imp_predictions:
             if item == 1:
                 count_ones = count_ones + 1
-        self.far = count_ones / len(self.imp_predictions)
-        return self.far
+        far = count_ones / len(imp_predictions)
+        return far
 
-    def get_frr(self):
+    def get_frr(self, gen_samples):
         count_ones = 0
-        for item in self.gen_predictions:
+        gen_predictions = self.gen_preds(gen_samples)
+
+        for item in gen_predictions:
             if item == 1:
                 count_ones = count_ones + 1
-        self.frr = 1 - (count_ones / len(self.gen_predictions))  # 1-TAR
-        return self.frr
+        frr = 1 - (count_ones / len(gen_predictions))  # 1-TAR
+        return frr
 
     def train_raf(self, x_train, y_train):
         # print('Training RAF')
@@ -127,7 +73,7 @@ class TrainAuthenticator:
             param_grid = {'n_estimators': n_estimators, 'max_features': max_features, 'max_depth': max_depth,
                           'min_samples_leaf': min_samples_leaf}
             model = RandomForestClassifier(n_jobs=-1, random_state=AuthParams.SEED)
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_frr)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv = CVAL, scoring=LOSS_FUNC)
             optimal_model.fit(x_train, y_train)
             n_estimators = optimal_model.best_params_['n_estimators']
             max_features = optimal_model.best_params_['max_features']
@@ -151,7 +97,7 @@ class TrainAuthenticator:
             param_grid = {'n_neighbors': n_neighbors, 'metric': dist_met}
             model = KNeighborsClassifier()
             # scoring_function = 'f1'
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_frr)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv = CVAL, scoring=LOSS_FUNC)
             # loss function!
             optimal_model.fit(x_train, y_train)
             best_nn = optimal_model.best_params_['n_neighbors']
@@ -160,7 +106,7 @@ class TrainAuthenticator:
             self.final_model = KNeighborsClassifier(n_neighbors=best_nn, metric=best_dist)
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
-            self.final_model = KNeighborsClassifier(n_neighbors=7, metric='euclidean')
+            self.final_model = KNeighborsClassifier(n_neighbors=11, metric='euclidean')
             self.final_model.fit(x_train, y_train)
 
     def train_lrg(self, x_train, y_train):
@@ -169,7 +115,7 @@ class TrainAuthenticator:
             param_grid = {'solver': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
                           'C': [100, 100, 10, 1.0, 0.1, 0.01], 'penalty': ['l1', 'l2', 'elasticnet']}
             model = linear_model.LogisticRegression(random_state=AuthParams.SEED, tol=1e-5)
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_frr)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv = CVAL, scoring=LOSS_FUNC)
             optimal_model.fit(x_train, y_train)
             solver = optimal_model.best_params_['solver']
             cval = optimal_model.best_params_['C']
@@ -179,7 +125,7 @@ class TrainAuthenticator:
                 random_state=AuthParams.SEED, tol=1e-5)
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
-            self.final_model = linear_model.LogisticRegression(C=1000)
+            self.final_model = linear_model.LogisticRegression(C=1000, solver ='newton-cg')
             self.final_model.fit(x_train, y_train)
 
     def train_mlp(self, x_train, y_train):
@@ -207,7 +153,7 @@ class TrainAuthenticator:
             param_grid = {'hidden_layer_sizes': hlsize, 'activation': activation, 'solver': solver, 'alpha': alpha,
                           'learning_rate': learning_rate}
             model = MLPClassifier(max_iter=500, random_state=AuthParams.SEED, early_stopping=True)
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring=self.scorer_frr)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring=LOSS_FUNC)
             optimal_model.fit(x_train, y_train)
             hlayers = optimal_model.best_params_['hidden_layer_sizes']
             activation = optimal_model.best_params_['activation']
@@ -230,7 +176,7 @@ class TrainAuthenticator:
             Kernels = ['linear', 'poly', 'rbf', 'sigmoid', ]
             param_grid = {'C': CVals, 'gamma': Gammas, 'kernel': Kernels}
             model = svm.SVC(random_state=AuthParams.SEED, tol=1e-5)
-            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv=10, scoring=self.scorer_frr)
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv = CVAL, scoring=LOSS_FUNC)
             optimal_model.fit(x_train, y_train)
             cval = optimal_model.best_params_['C']
             gamma = optimal_model.best_params_['gamma']
@@ -240,4 +186,20 @@ class TrainAuthenticator:
             self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
         else:
             self.final_model = svm.SVC(probability=True, C=1000)
+            self.final_model.fit(x_train, y_train)
+
+    def train_gnb(self, x_train, y_train):
+        # print('Training Gaussian Naive Bayes--best baseline!')
+        if AuthParams.HYPER_TUNE:
+            var_smoothing = [1e-09, 1e-07, 1e-05]
+            param_grid = {'var_smoothing': var_smoothing}
+            model = GaussianNB()
+            optimal_model = GridSearchCV(estimator=model, param_grid=param_grid, cv = CVAL, scoring=LOSS_FUNC)
+            optimal_model.fit(x_train, y_train)
+            var_smoothing = optimal_model.best_params_['var_smoothing']
+            # print(f'var_smoothing: {var_smoothing}')
+            self.final_model = GaussianNB(var_smoothing=var_smoothing)
+            self.final_model.fit(x_train, y_train)  # setting the final model that will be used for prediction
+        else:
+            self.final_model = GaussianNB()
             self.final_model.fit(x_train, y_train)
